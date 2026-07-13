@@ -5,16 +5,7 @@ Installed as the global `SEOinfo` command (see README). URLs may be given
 without a scheme ("seznam.cz"); http:// is upgraded to https:// automatically.
 
 Usage:
-    # Inspect one or more live pages (HTML):
     SEOinfo example.super.site example.super.site/map-view
-
-    # Compare a path across prod vs staging site-data API:
-    SUPER_API_SECRET=xxx SEOinfo --compare /map-view --domain example.super.site
-
-Exit codes:
-    0  OK
-    1  --compare: description differs between prod and staging (usable in CI)
-    2  environment/runtime error (missing SUPER_API_SECRET, page unreachable, ...)
 
 Standard library only. Runs on macOS and Linux with no setup.
 """
@@ -22,18 +13,14 @@ Standard library only. Runs on macOS and Linux with no setup.
 import argparse
 import gzip
 import html
-import json
-import os
 import re
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 import zlib
 
 TIMEOUT = 15
 USER_AGENT = "super-seo-check/1.0 (+https://super.so)"
-STAGING_SITE_DATA = "https://staging.api-v2.super.so/site-data/{domain}?page={path}&noCache=true&secret={secret}"
 
 FIELDS = ["title", "description", "og:title", "og:description"]
 
@@ -109,21 +96,6 @@ def parse_head(document):
     return result
 
 
-def fetch_staging(domain, path, secret):
-    """Read SEO fields from the staging site-data API (JSON props.head)."""
-    url = STAGING_SITE_DATA.format(
-        domain=domain, path=urllib.parse.quote(path, safe=""), secret=secret
-    )
-    body = fetch(url)
-    try:
-        data = json.loads(body)
-    except json.JSONDecodeError:
-        raise SeoCheckError(f"Staging site-data did not return JSON for {domain}{path}")
-
-    head = (data.get("props") or {}).get("head") or {}
-    return {field: head.get(field) for field in FIELDS}
-
-
 def render_value(value):
     if value is None:
         return "(missing)"
@@ -140,40 +112,6 @@ def print_block(url, fields):
     print()
 
 
-def print_comparison(path, prod, staging):
-    label_w = max(len(f) for f in FIELDS)
-    col_w = 40
-    header = f"  {'field':<{label_w}}  {'prod':<{col_w}}  staging"
-    print(f"Compare: {path}\n")
-    print(header)
-    print("  " + "-" * (label_w + col_w + len(header) // 4))
-    for field in FIELDS:
-        p, s = prod[field], staging[field]
-        flag = " ⚠️" if p != s else ""
-        pv = render_value(p)
-        sv = render_value(s)
-        print(f"  {field:<{label_w}}  {pv[:col_w]:<{col_w}}  {sv}{flag}")
-    print()
-
-
-def run_compare(path, domain):
-    if not path.startswith("/"):
-        path = "/" + path
-    secret = os.environ.get("SUPER_API_SECRET")
-    if not secret:
-        print("Error: SUPER_API_SECRET is not set (required for staging site-data).", file=sys.stderr)
-        return 2
-
-    prod = parse_head(fetch(f"https://{domain}{path}"))
-    staging = fetch_staging(domain, path, secret)
-    print_comparison(path, prod, staging)
-
-    if prod["description"] != staging["description"]:
-        print("Description differs between prod and staging.", file=sys.stderr)
-        return 1
-    return 0
-
-
 def run_inspect(urls):
     for url in urls:
         try:
@@ -185,18 +123,10 @@ def run_inspect(urls):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Check SEO meta tags of Super pages.")
-    parser.add_argument("urls", nargs="*", help="Page URLs to inspect")
-    parser.add_argument("--compare", metavar="PATH", help="Compare a path (e.g. /map-view) across prod vs staging")
-    parser.add_argument("--domain", help="Domain to use with --compare (e.g. example.super.site)")
+    parser.add_argument("urls", nargs="+", help="Page URLs to inspect")
     args = parser.parse_args(argv)
 
     try:
-        if args.compare:
-            if not args.domain:
-                parser.error("--compare requires --domain")
-            return run_compare(args.compare, args.domain)
-        if not args.urls:
-            parser.error("provide at least one URL, or use --compare with --domain")
         return run_inspect(args.urls)
     except SeoCheckError as e:
         print(f"Error: {e}", file=sys.stderr)
