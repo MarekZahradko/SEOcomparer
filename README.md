@@ -38,6 +38,33 @@ Compare a path across prod vs staging (site-data API):
 SUPER_API_SECRET=xxx SEOdescription --compare /map-view --domain example.super.site
 ```
 
+## Examples
+
+Inspecting a page:
+
+```
+$ SEOdescription https://super.so/
+URL: https://super.so/
+  title:          Super — Create Custom Websites with Notion
+  description:    Create a custom website in less than a minute with instant page loads, SEO optimization, and customized theming.
+  og:title:       Super — Create Custom Websites with Notion
+  og:description: Create a custom website in less than a minute with instant page loads, SEO optimization, and customized theming.
+```
+
+Comparing prod vs staging (⚠️ marks a difference; description diff exits 1):
+
+```
+$ SUPER_API_SECRET=xxx SEOdescription --compare /map-view --domain example.super.site
+Compare: /map-view
+
+  field           prod                                      staging
+  --------------------------------------------------------------------
+  title           Map View                                  Map View
+  description     Old parsed description                    New parsed description ⚠️
+  og:title        Map View                                  Map View
+  og:description  Old parsed description                    New parsed description ⚠️
+```
+
 ## Exit codes
 
 | Code | Meaning |
