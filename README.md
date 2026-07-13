@@ -1,6 +1,6 @@
 # SEOcomparer
 
-Small CLI tool by Marek Zahradko to check SEO meta tags of Super pages without opening DevTools.
+Small CLI tool to check SEO meta tags of Super pages without opening DevTools.
 
 Python 3, standard library only. Runs on macOS and Linux with no setup.
 
