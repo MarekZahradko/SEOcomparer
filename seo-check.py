@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """SEO meta tag checker for Super pages ("toothpick" util).
 
+Installed as the global `SEOinfo` command (see README). URLs may be given
+without a scheme ("seznam.cz"); http:// is upgraded to https:// automatically.
+
 Usage:
     # Inspect one or more live pages (HTML):
-    python3 seo-check.py https://example.super.site/ https://example.super.site/map-view
+    SEOinfo example.super.site example.super.site/map-view
 
     # Compare a path across prod vs staging site-data API:
-    SUPER_API_SECRET=xxx python3 seo-check.py --compare /map-view --domain example.super.site
+    SUPER_API_SECRET=xxx SEOinfo --compare /map-view --domain example.super.site
 
 Exit codes:
     0  OK
@@ -17,6 +20,7 @@ Standard library only. Runs on macOS and Linux with no setup.
 """
 
 import argparse
+import gzip
 import html
 import json
 import os
@@ -25,6 +29,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 
 TIMEOUT = 15
 USER_AGENT = "super-seo-check/1.0 (+https://super.so)"
@@ -37,13 +42,32 @@ class SeoCheckError(Exception):
     """Raised for expected failures we want to show as a clean message."""
 
 
+def normalize_url(url):
+    """Ensure the URL uses https. Bare host or http:// -> https://."""
+    url = url.strip()
+    if url.startswith("http://"):
+        return "https://" + url[len("http://"):]
+    if "://" not in url:
+        return "https://" + url
+    return url
+
+
 def fetch(url):
     """Fetch a URL, returning the body as text. Raises SeoCheckError on failure."""
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    url = normalize_url(url)
+    req = urllib.request.Request(
+        url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"}
+    )
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            raw = resp.read()
+            encoding = (resp.headers.get("Content-Encoding") or "").lower()
+            if encoding == "gzip":
+                raw = gzip.decompress(raw)
+            elif encoding == "deflate":
+                raw = zlib.decompress(raw)
             charset = resp.headers.get_content_charset() or "utf-8"
-            return resp.read().decode(charset, errors="replace")
+            return raw.decode(charset, errors="replace")
     except urllib.error.HTTPError as e:
         raise SeoCheckError(f"HTTP {e.code} {e.reason} for {url}")
     except urllib.error.URLError as e:

@@ -4,14 +4,14 @@ Small CLI tool to check SEO meta tags of Super pages without opening DevTools.
 
 Python 3, standard library only. Runs on macOS and Linux with no setup.
 
-## Install (global `SEOdescription` command)
+## Install (global `SEOinfo` command)
 
-Make the script runnable from anywhere as `SEOdescription`:
+Make the script runnable from anywhere as `SEOinfo`:
 
 ```bash
 chmod +x seo-check.py
 mkdir -p ~/.local/bin
-ln -sf "$(pwd)/seo-check.py" ~/.local/bin/SEOdescription
+ln -sf "$(pwd)/seo-check.py" ~/.local/bin/SEOinfo
 ```
 
 If `~/.local/bin` is not on your `PATH`, add it (zsh):
@@ -28,14 +28,14 @@ Now you can run it from any directory.
 Inspect one or more live pages:
 
 ```bash
-SEOdescription https://example.super.site/
-SEOdescription https://example.super.site/ https://example.super.site/map-view
+SEOinfo https://example.super.site/
+SEOinfo https://example.super.site/ https://example.super.site/map-view
 ```
 
 Compare a path across prod vs staging (site-data API):
 
 ```bash
-SUPER_API_SECRET=xxx SEOdescription --compare /map-view --domain example.super.site
+SUPER_API_SECRET=xxx SEOinfo --compare /map-view --domain example.super.site
 ```
 
 ## Examples
@@ -43,7 +43,7 @@ SUPER_API_SECRET=xxx SEOdescription --compare /map-view --domain example.super.s
 Inspecting a page:
 
 ```
-$ SEOdescription https://super.so/
+$ SEOinfo https://super.so/
 URL: https://super.so/
   title:          Super — Create Custom Websites with Notion
   description:    Create a custom website in less than a minute with instant page loads, SEO optimization, and customized theming.
@@ -54,7 +54,7 @@ URL: https://super.so/
 Comparing prod vs staging (⚠️ marks a difference; description diff exits 1):
 
 ```
-$ SUPER_API_SECRET=xxx SEOdescription --compare /map-view --domain example.super.site
+$ SUPER_API_SECRET=xxx SEOinfo --compare /map-view --domain example.super.site
 Compare: /map-view
 
   field           prod                                      staging
